@@ -116,7 +116,7 @@ def calculate_hmls() -> None:
     hmls['AAPL'] = pct_change['AAPL']
 
     # change columns order by name
-    hmls = hmls[sorted(hmls.columns)].loc[datetime(2023, 2, 1):]
+    hmls = hmls[sorted(hmls.columns)]
     hmls.to_csv('data/hml.csv')
     print("HMLs calculated and saved to data/hml.csv")
 
