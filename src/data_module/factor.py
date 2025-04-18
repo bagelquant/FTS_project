@@ -5,10 +5,10 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 
-def _get_all_symbols(path: Path = Path('data')) -> list[str]:
+def _get_all_symbols(path: Path = Path('data/raw')) -> list[str]:
     return [f.stem for f in path.glob('*.csv')]
 
-def _get_all_alpha_names(path: Path = Path('concat')) -> list[str]:
+def _get_all_alpha_names(path: Path = Path('data/alphas_by_name')) -> list[str]:
     all_alphas = [f.stem for f in path.glob('*.csv')]
 
     # Remove some alphas that difficult to analyze
@@ -41,12 +41,13 @@ def _get_all_alpha_names(path: Path = Path('concat')) -> list[str]:
                    'alpha099']
 
     for alpha in remove_list:
-        all_alphas.remove(alpha)
+        if alpha in all_alphas:
+            all_alphas.remove(alpha)
     return all_alphas
 
 
-def read_alpha(alpha_name: str, 
-               path: Path = Path('concat')) -> pd.DataFrame:
+def _read_alpha(alpha_name: str, 
+               path: Path = Path('data/alphas_by_name')) -> pd.DataFrame:
     """read alpha"""
     return pd.read_csv(path / f'{alpha_name}.csv', index_col='trade_date', parse_dates=True)
 
@@ -55,8 +56,8 @@ def read_alpha(alpha_name: str,
 class Factor:
     
     alpha_name: str
-    pct_change: pd.DataFrame
-    alpha: pd.DataFrame
+    pct_change: pd.DataFrame  # percentage change of stocks price
+    alpha: pd.DataFrame  # alpha value of stocks
     groups: int = 5
     
     def daily_group(self, date: datetime) -> pd.Series:
@@ -96,15 +97,15 @@ class Factor:
         return hml
 
 
-def hmls() -> None:
+def calculate_hmls() -> None:
     """concat all factors"""
     all_alphas = _get_all_alpha_names()
     
     # calculate hml
-    pct_change = read_alpha('pct_change')/100
+    pct_change = _read_alpha('pct_change')/100
     hmls = []
     for alpha in all_alphas:
-        alpha_df = read_alpha(alpha)
+        alpha_df = _read_alpha(alpha)
         factor = Factor(alpha, pct_change, alpha_df)
         hml = factor.hml()
         hmls.append(hml)
@@ -116,12 +117,12 @@ def hmls() -> None:
 
     # change columns order by name
     hmls = hmls[sorted(hmls.columns)].loc[datetime(2023, 2, 1):]
-    hmls.to_csv('hml.csv')
-    print(hmls)
+    hmls.to_csv('data/hml.csv')
+    print("HMLs calculated and saved to data/hml.csv")
 
 
 if __name__ == '__main__':
     from time import perf_counter
     start = perf_counter()
-    hmls()
+    calculate_hmls()
     print(f"\nTime: {perf_counter() - start:.2f}s")
