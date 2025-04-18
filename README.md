@@ -46,8 +46,8 @@ pip install -r requirements.txt
 |-- README.md
 |-- data
 |   |-- raw
-|   |-- alpha
-|   |-- concat
+|   |-- alphas_by_symbol
+|   |-- alphas_by_name
 |-- src
 |   |-- data_module
 |   |   |-- __init__.py
