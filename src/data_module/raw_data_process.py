@@ -8,6 +8,7 @@ columes: - symbol: str, from csv file name without extension
 import pandas as pd
 from pathlib import Path
 from .alpha import get_alpha
+from concurrent.futures import ProcessPoolExecutor
 
 
 def _get_stock_price(symbol: str, 
@@ -47,17 +48,28 @@ def _calculate_alphas_single_symbol(symbol: str,
     Utilize get_alpha function from alpha.py module,
     then save to a csv file
     """
-    if not output_path.exists():
-        output_path.mkdir()
+    print(f"Calculate alphas for {symbol} ...")
     df = _get_stock_price(symbol)
     alphas = get_alpha(df)  # Calculate alphas, from alpha.py module
     alphas.to_csv(output_path / f'{symbol}.csv')
 
 
-def calculate_all_alphas(output_path: Path = Path('data/alphas_by_symbol')) -> None:
-    for symbol in _get_all_symbols():
-        print(f"Calculate alphas for {symbol} ...")
-        _calculate_alphas_single_symbol(symbol, output_path)
+def calculate_all_alphas(output_path: Path = Path('data/alphas_by_symbol'),
+                         max_worker: int = 10) -> None:
+    """
+    Calculate alphas for all symbols using multiprocessing
+    :param output_path: Path to output folder
+    :param max_worker: Maximum number of workers
+    :return: None
+    """
+    if not output_path.exists():
+        output_path.mkdir()
+    
+    all_symbols = _get_all_symbols()
+    with ProcessPoolExecutor(max_workers=max_worker) as executor:
+        results = list(executor.map(_calculate_alphas_single_symbol,
+                                    all_symbols,
+                                    [output_path] * len(_get_all_symbols())))
 
 
 def regroup_alphas(path: Path = Path('data/alphas_by_symbol'), 
@@ -77,6 +89,8 @@ def regroup_alphas(path: Path = Path('data/alphas_by_symbol'),
     data = {}
     for symbol in _get_all_symbols(path):
         df = pd.read_csv(path / f'{symbol}.csv', index_col='trade_date', parse_dates=True)
+        # remove duplicate index
+        df = df[~df.index.duplicated(keep='first')]
         data[symbol] = df
     for column in columns:
         concat_table = pd.DataFrame({symbol: data[symbol][column] for symbol in data})
