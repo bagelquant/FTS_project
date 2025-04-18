@@ -178,3 +178,7 @@ cython_debug/
 
 # MacOS
 .DS_Store
+
+# data
+data/alphas_by_name/
+data/alphas_by_symbol/
