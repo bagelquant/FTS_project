@@ -15,17 +15,17 @@ from src.data_module import calculate_all_alphas, regroup_alphas
 from src.data_module import calculate_hmls
 
 if __name__ == '__main__':
-    # print("Start calculating all alphas")
-    # start = perf_counter()
-    # calculate_all_alphas()
-    # end = perf_counter()
-    # print(f"Calculate all alphas: {end - start:.2f} seconds or {(end - start) / 60:.2f} minutes")
+    print("Start calculating all alphas")
+    start = perf_counter()
+    calculate_all_alphas()
+    end = perf_counter()
+    print(f"Calculate all alphas: {end - start:.2f} seconds or {(end - start) / 60:.2f} minutes")
     
-    # print("Start regrouping alphas")
-    # start = perf_counter()
-    # regroup_alphas()
-    # end = perf_counter()
-    # print(f"Regroup all alphas: {end - start:.2f} seconds or {(end - start) / 60:.2f} minutes")
+    print("Start regrouping alphas")
+    start = perf_counter()
+    regroup_alphas()
+    end = perf_counter()
+    print(f"Regroup all alphas: {end - start:.2f} seconds or {(end - start) / 60:.2f} minutes")
 
     print("Start calculating HMLs")
     start = perf_counter()
