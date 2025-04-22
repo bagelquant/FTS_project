@@ -3,3 +3,4 @@ matplotlib
 statsmodels
 scipy
 jupyter
+yfinance
