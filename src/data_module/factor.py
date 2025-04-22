@@ -49,7 +49,7 @@ def _get_all_alpha_names(path: Path = Path('data/alphas_by_name')) -> list[str]:
 def _read_alpha(alpha_name: str, 
                path: Path = Path('data/alphas_by_name')) -> pd.DataFrame:
     """read alpha"""
-    return pd.read_csv(path / f'{alpha_name}.csv', index_col='trade_date', parse_dates=True)
+    return pd.read_csv(path / f'{alpha_name}.csv', index_col=0, parse_dates=True)
 
 
 @dataclass(slots=True)

@@ -23,8 +23,10 @@ def _get_stock_price(symbol: str,
     DataFrame columns: open, high, low, close, volume
     """
     df = pd.read_csv(path / f'{symbol}.csv', 
-                     index_col='trade_date', 
+                     index_col=0, 
                      parse_dates=True).sort_index()
+    df = df.ffill()
+    df = df.dropna()
     return df
 
 
@@ -85,14 +87,15 @@ def regroup_alphas(path: Path = Path('data/alphas_by_symbol'),
     if not output_path.exists():
         output_path.mkdir()
     
-    columns = pd.read_csv(path / 'AAPL.csv', index_col='trade_date').columns.to_list()
+    columns = pd.read_csv(path / 'AAPL.csv', index_col=0).columns.to_list()
     data = {}
     for symbol in _get_all_symbols(path):
-        df = pd.read_csv(path / f'{symbol}.csv', index_col='trade_date', parse_dates=True)
+        df = pd.read_csv(path / f'{symbol}.csv', index_col=0, parse_dates=True)
         # remove duplicate index
         df = df[~df.index.duplicated(keep='first')]
         data[symbol] = df
     for column in columns:
+        print(f"Regroup {column} ...")
         concat_table = pd.DataFrame({symbol: data[symbol][column] for symbol in data})
         concat_table.to_csv(output_path / f'{column}.csv')
 
