@@ -4,3 +4,5 @@ statsmodels
 scipy
 jupyter
 yfinance
+arch
+numdifftools

@@ -233,9 +233,9 @@ def _test():
     factor_returns = _read_factor_returns()
 
     top_10_stocks, resids = rolling_top_z(stock_returns=stock_returns,
-                                factor_returns=factor_returns,
-                                lookback_period=lookback_period,
-                                only_include_singnificant_exposure=True)
+                                         factor_returns=factor_returns,
+                                         lookback_period=lookback_period,
+                                         only_include_singnificant_exposure=True)
     # save csv
     top_10_stocks.to_csv(Path('data/monthly_stock_pick') / f'top_10_stocks_{lookback_period}.csv')
     month_ends = top_10_stocks.index.to_list()
