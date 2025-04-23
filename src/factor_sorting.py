@@ -114,7 +114,7 @@ def _single_stock_exposure_by_linear_regression(single_stock_returns: pd.Series,
 
 def calculate_exposures_and_resid(stock_returns: pd.DataFrame,
                        factor_returns: pd.DataFrame,
-                       only_include_singnificant_exposure: bool = True) -> tuple[pd.DataFrame, pd.DataFrame]:
+                       only_include_singnificant_exposure: bool = True) -> pd.DataFrame:
      """
      Calculate exposure for each stock
      :param stock_returns: DataFrame with stock returns
@@ -133,9 +133,8 @@ def calculate_exposures_and_resid(stock_returns: pd.DataFrame,
           exposures.append(exposure)
           resids.append(resid)
      exposures = pd.DataFrame(exposures, index=stock_returns.columns).fillna(0)
-     resids = pd.concat(resids, axis=1)
 
-     return exposures, resids
+     return exposures
 
 
 def calculate_z_scores(exposure: pd.Series) -> pd.Series:
@@ -150,19 +149,19 @@ def calculate_z_scores(exposure: pd.Series) -> pd.Series:
     return z_scores
 
 
-def rolling_top_z(stock_returns: pd.DataFrame,
-                  factor_returns: pd.DataFrame,
-                  lookback_period: int = 12,
-                  only_include_singnificant_exposure: bool = True,
-                  max_worker: int = 10) -> tuple[pd.DataFrame, list[pd.DataFrame]]:
+def rolling_z(stock_returns: pd.DataFrame,
+             factor_returns: pd.DataFrame,
+             lookback_period: int = 12,
+             only_include_singnificant_exposure: bool = True,
+             max_worker: int = 10) -> pd.DataFrame:
     """
-    Top 10 stocks based on z-scores
+    Stock z-scores for each month
     :param stock_returns: DataFrame with stock returns
     :param factor_returns: DataFrame with factor returns
     :param lookback_period: Lookback period in months
     :param only_include_singnificant_exposure: If True, only include significant exposure
     :param max_worker: Max number of workers for parallel processing
-    :return: DataFrame with top 10 stocks for each month
+    :return: DataFrame with stock z-scores, index: month end date, columns: ticker, value: z-score
     """
     month_ends = stock_returns.resample('BME').last().index.to_list()
     factor_returns_list = [factor_returns for _ in range(len(month_ends))]
@@ -170,35 +169,33 @@ def rolling_top_z(stock_returns: pd.DataFrame,
     only_include_singnificant_exposures = [only_include_singnificant_exposure for _ in range(len(month_ends))]
 
     with ProcessPoolExecutor(max_workers=max_worker) as executor:
-        results = list(executor.map(_single_top_z,
+        results = list(executor.map(_single_date_z,
                                      [stock_returns] * len(month_ends),
                                      factor_returns_list,
                                      month_ends,
                                      lookback_periods,
                                      only_include_singnificant_exposures))
     
-    top_10_stocks, resids = zip(*results)
-    top_10_stocks = pd.DataFrame(top_10_stocks, index=month_ends)
-    return top_10_stocks, resids  # type: ignore
+    stock_z_score = pd.concat(results, axis=1).T
+    return stock_z_score
 
 
-def _single_top_z(stock_returns: pd.DataFrame,
+def _single_date_z(stock_returns: pd.DataFrame,
                   factor_returns: pd.DataFrame,
                   end_date: pd.Timestamp,
                   lookback_period: int = 12,
-                  only_include_singnificant_exposure: bool = True) -> tuple[list[str], pd.DataFrame]:
+                  only_include_singnificant_exposure: bool = True) -> pd.Series:
     """
-    Top 10 stocks based on z-scores and residuals
+    Stocks z-scores for a single date
     :param stock_returns: DataFrame with stock returns
     :param factor_returns: DataFrame with factor returns
     :param end_date: End date for the lookback period
     :param lookback_period: Lookback period in months
     :param only_include_singnificant_exposure: If True, only include significant exposure
-    :return: tuple of list with top 10 stocks and DataFrame with residuals
-    Top 10 stocks: list of tickers
-    Residuals: index: trade_date, columns: ticker, value: residuals
+    :return: pd.Series, index: ticker, value: z-score
 
     """
+    print(f"Calculating z-scores for {end_date.strftime('%Y-%m-%d')}")
     # Get the lookback period
     start_date = end_date - pd.DateOffset(months=lookback_period)
 
@@ -207,40 +204,43 @@ def _single_top_z(stock_returns: pd.DataFrame,
     factor_returns_lookback = factor_returns.loc[start_date:end_date]
 
     # Calculate exposures and residuals
-    exposures, resids = calculate_exposures_and_resid(stock_returns_lookback,
+    exposures = calculate_exposures_and_resid(stock_returns_lookback,
                                                         factor_returns_lookback,
                                                         only_include_singnificant_exposure)
 
     # Calculate z-scores for each factor
-    z_scores = exposures.apply(calculate_z_scores, axis=0)
+    z_scores = exposures.apply(calculate_z_scores, axis=0)  # type: ignore
 
     # Calculate sum of z-scores for each stock
-    sum_z_scores = z_scores.sum(axis=1)
+    mean_z_scores = z_scores.mean(axis=1)
+    mean_z_scores.name = end_date
 
-    # Sort by sum of z-scores
-    sorted_stocks = sum_z_scores.sort_values(ascending=False).head(10)
-    top_10_stocks = sorted_stocks.index.tolist()
-    return top_10_stocks, resids
+    return mean_z_scores
 
         
 
 def _test():
     
-    lookback_period = 12
+    lookback_periods = [3, 6, 9, 12, 18, 24]
+    lookback_periods = [9]
     # calculate stock returns
     # calculate_stock_returns(path=Path('data/raw'), output=Path('data/'))
     stock_returns = _read_stock_returns()
     factor_returns = _read_factor_returns()
 
-    top_10_stocks, resids = rolling_top_z(stock_returns=stock_returns,
-                                         factor_returns=factor_returns,
-                                         lookback_period=lookback_period,
-                                         only_include_singnificant_exposure=True)
-    # save csv
-    top_10_stocks.to_csv(Path('data/monthly_stock_pick') / f'top_10_stocks_{lookback_period}.csv')
-    month_ends = top_10_stocks.index.to_list()
-    for resid, month_end in zip(resids, month_ends):
-        resid.to_csv(Path('data/monthly_stock_pick/residuals') / f'resid_{month_end}.csv')
+    # single_date_z_test = _single_date_z(stock_returns=stock_returns,
+    #                                     factor_returns=factor_returns,
+    #                                     end_date=pd.Timestamp('2024-12-31'),
+    #                                     lookback_period=lookback_period,
+    #                                     only_include_singnificant_exposure=True)
+    # print(single_date_z_test)
+    for lookback_period in lookback_periods:
+        stock_z_score = rolling_z(stock_returns=stock_returns,
+                                factor_returns=factor_returns,
+                                lookback_period=lookback_period,
+                                only_include_singnificant_exposure=True)
+        # save csv
+        stock_z_score.to_csv(Path('data/monthly_stock_pick') / f'z_scores_{lookback_period}.csv')
     
 
 if __name__ == '__main__':

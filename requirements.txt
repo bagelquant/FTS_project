@@ -6,3 +6,4 @@ jupyter
 yfinance
 arch
 numdifftools
+pmdarima
