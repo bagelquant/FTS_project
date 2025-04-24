@@ -99,9 +99,135 @@ In our backtesting period, 2004-2024, we first selected the alphas daily return 
 
 The absolute correlation between the significant alphas daily returns is relatively low, the average absolute correlation is 0.15. The maximum absolute correlation is 0.71, which is between alpha009 and alpha010 (Due to their similar construction method). 
 
+\newpage
+
 ## Time-Series Components Analysis
 
+### Data Preparation for Time-Series Analysis
+
+We started by reading multiple `.csv` files from the raw data folder.
+Each file corresponds to a stock and contains columns such as
+`trade_date`, `open`, `high`, `low`, `close`, `vol`, `pct_change`, and
+`vwap`. The preprocessing included:
+
+-   Parsing `trade_date` as datetime and setting it as the index.
+-   Converting numerical columns to appropriate types and handling errors.
+-   Sorting by date and filling missing values using forward and backward fill.
+-   Computing daily returns using:
+
+$$
+\text{return}_t = \frac{\text{pct\_change}_t}{100}
+$$
+
+
+To mitigate the influence of extreme values, we clipped the returns at the 1st and 99th percentiles:
+
+$$
+r_t^{\text{clipped}} = 
+\begin{cases}
+q_{0.01}, & \text{if } r_t < q_{0.01} \\
+r_t, & \text{if } q_{0.01} \leq r_t \leq q_{0.99} \\
+q_{0.99}, & \text{if } r_t > q_{0.99}
+\end{cases}
+$$
+
+After transformation, the new plot shows that all the returns are now clipped between -13% and 17%. This transformation reduces the impact of outliers and enhances the robustness of subsequent statistical analysis.
+
+###  Time Series Analysis
+
+In this section, we conduct a diagnostic analysis of the return series.
+
+The primary tests are: 
+- **Stationarity Tests**: To check if the return series are stationary. 
+- **Ljung-Box Test**: To check for autocorrelation in the return series. 
+- **ARCH LM Test** (Lagrange Multiplier Test):To check for ARCH effects, indicating volatility clustering.
+
+### Stationarity Tests
+
+#### **Unit Root Test**
+
+To assess the stationarity of stock return series, we performed the Augmented Dickey-Fuller (ADF) and KPSS tests across all 496 stocks.
+
+#### Augmented Dickey-Fuller (ADF) Test
+
+-   Null hypothesis ( $H_0$ ): The series has a unit root (non-stationary)
+-   If p-value < 0.05, we reject ( $H_0$ ), suggesting stationarity.
+
+#### KPSS Test
+
+-   Null hypothesis $H_0$: The series is stationary
+-   If p-value > 0.05, we fail to reject $H_0$, suggesting stationarity.
+
+#### Decision Rule
+
+A series is considered stationary only if:
+
+-   ADF test rejects $H_0$ (p < 0.05), and
+-   KPSS test fails to reject $H_0$ (p > 0.05)
+
+This dual-criteria approach ensures robustness in stationarity conclusions.
+
+The following summarizes the statistical properties of the test results:
+
+| Metric  | ADF Statistic | ADF p-value               | KPSS Statistic | KPSS p-value |
+|---------|---------------|--------------------------|----------------|--------------|
+| **Count** | 496           | 496                      | 496            | 496          |
+| **Mean**  | -26.32        | $2.29 \times 10^{-10}$   | 0.116          | 0.097        |
+| **Min**   | -77.92        | 0.0                      | 0.013          | 0.010        |
+| **Max**   | -6.07         | $1.14 \times 10^{-7}$    | 1.012          | 0.100        |
+
+
+#### Interpretation
+
+-   The **ADF test** statistic has a strongly negative mean of -26.32 and nearly all p-values are effectively 0, indicating strong evidence to reject the null hypothesis of a unit root. This suggests the return series are stationary under the ADF test.
+
+-   The **KPSS test** statistic has a mean of 0.116, with the maximum value slightly above 1. Most of the p-values are exactly 0.1 (the upper bound reported by the test), suggesting that the null hypothesis of stationarity is not rejected in most cases.
+
+-  About 96.8% of the return series are confirmed to be stationary. These results confirm that the majority of stock return series in our dataset can be treated as stationary, validating their suitability for further time series modeling and statistical analysis.
+
+![Seasonal Decomposition](attachments/seasonal_decomposition.jpg)
+
 \newpage
+
+### Seasonal Decomposition
+
+Our tests show that there is no seasonality and trend in stock return rates. Therefore, we do not consider seasonal decomposition in our models.
+
+
+### Autocorrelation and ARCH Effect Detection
+
+The Ljung-Box test checks the null hypothesis:
+
+$$
+H_0: \text{The series is white noise (no autocorrelation up to lag k).}
+$$
+
+The test statistic accumulates the squared autocorrelation coefficients up to lag ( k ). A significant p-value (typically p < 0.05) suggests that the series exhibits autocorrelation.
+
+Since we conduct GARCH model on the residuals of the ARIMAX model, we should also check if there is ARCH effect in the residuals. We simply apply the LM test on the residuals of the AR(1) model to check if there is autocorrelation after removing the one lag autocorrelation.
+
+The ARCH LM Test evaluates whether residual variance shows autocorrelation, suggesting the presence of volatility clustering. If ARCH effects are detected, models like GARCH are recommended to better capture the dynamic behavior of volatility. The LM test checks the null hypothesis:
+
+$$
+H_0: \text{No ARCH effect (the squared residuals are not autocorrelated, variance is constant over time).}
+$$
+
+| p-value               | Conclusion                                                    |
+|-----------------------|---------------------------------------------------------------|
+| p-value < 0.05        | Reject $H_0$: ARCH effects detected (volatility clustering exists). |
+| $p$-value $\leq$ 0.05      | Fail to reject $H_0$: No significant ARCH effects, variance can be considered constant. |
+
+
+We randomly selected 5 stocks from the dataset to illustrate the results of the Ljung-Box test and LM test. In the table below, the last two columns indicate whether autocorrelation and ARCH effects exist based on the p-values (5% significance level). Four out of five stocks show evidence of autocorrelation and ARCH effects.
+
+
+| symbol | box_stat  | box_pvalue   | LM_stats   | LM_pvalue   | Exist_Arch   | Exist_Autocorr |
+|--------|-----------|--------------|------------|-------------|--------------|---------------|
+| CSCO   | 67.4781   | 0.0005       | 321.0422   | 0.0000      | True             | True          |
+| UAL    | 103.5778  | 0.0000       | 674.0067   | 0.0000      | True             | True          |
+| TROW   | 97.5386   | 0.0000       | 107.2964   | 0.0000      | True             | True          |
+| ISRG   | 20.5516   | 0.4239       | 0.8469     | 1.0000      | False            | False         |
+| NVR    | 52.5150   | 0.0001       | 1092.4693  | 0.0000      | True             | True          |
 
 ## Model Construction
 
@@ -215,6 +341,124 @@ The following table shows the predicted returns and volatility for the selected 
 
 
 ## Backtesting Results
+
+### Strategy Explanation
+
+Our strategy proceeds as follows:
+
+1. **Monthly Stock Selection and Prediction**  
+   For each month $\tau$, our model selects 10 stocks and forecasts for each trading day $t$ within that month:
+   - Predicted return: $\hat{\mu}_{i,t}$  
+   - Predicted volatility: $\hat{\sigma}_{i,t}$
+
+2. **Mean–Variance Ratio Calculation**  
+   On each day $t$, compute the mean–variance ratio for stock $i$:
+   $$
+   \mathrm{MVR}_{i,t}
+   \;=\;
+   \frac{\hat{\mu}_{i,t}}{\hat{\sigma}_{i,t}}.
+   $$
+
+3. **Average MVR and Ranking**  
+   At the start of month $\tau$, calculate the average daily MVR for each stock:
+   $$
+   \overline{\mathrm{MVR}}_{i,\tau}
+   =
+   \frac{1}{N_\tau}
+   \sum_{t=1}^{N_\tau}
+     \mathrm{MVR}_{i,t},
+   $$
+   where $N_\tau$ is the number of trading days in month $\tau$.  
+   Sort the 10 stocks in ascending order of $\overline{\mathrm{MVR}}_{i,\tau}$, assign ranks $r_{i,\tau}\in\{1,\dots,10\}$, then set weights by
+   $$
+   w_{i,\tau}
+   \;=\;
+   \frac{r_{i,\tau}}{\sum_{j=1}^{10} r_{j,\tau}}
+   \;=\;
+   \frac{r_{i,\tau}}{55}.
+   $$
+
+4. **Daily Portfolio Return**  
+   For each trading day $t$ in month $\tau$, the portfolio return is
+   $$
+   R_{p,t}
+   =
+   \sum_{i=1}^{10}
+     w_{i,\tau}\,R_{i,t},
+   $$
+   where $R_{i,t}$ is the actual return of stock $i$ on day $t$.
+
+We repeat steps 1–4 for every month in the backtesting period to generate the full series of daily portfolio returns.
+
+### Backtesting and Benchmark Comparison
+
+Our back-testing procedure runs the strategy side-by-side with a given benchmark index. For each month $\tau$:
+
+- We compute daily portfolio returns $R_{p,t}$ as described above.
+- In parallel, we record the benchmark’s daily return $R_{b,t}$. Our benchmark is the equal-weighted porfolio of the S&P 500 stocks (excluded stocks with missing data)
+- Both series start on the same first trading day and proceed through the last trading day of the backtest.
+- We assume daily rebalancing the model portfolio and no rebalancing for the benchmark (i.e., a buy-and-hold of the index).
+
+At the end, we aggregate the daily returns into performance metrics for both:
+
+- Annualized Return:  
+  $$
+  \text{AnnRet} = \bigl(1 + \overline{R}\bigr)^{252} - 1,
+  $$
+  where $\overline{R}$ is the average daily return.
+
+- Annualized Volatility:  
+  $$
+  \text{AnnVol} = \sqrt{252}\,\sigma_R,
+  $$
+  where $\sigma_R$ is the standard deviation of daily returns.
+
+- Sharpe Ratio:  
+  $$
+  \mathrm{SR} = \frac{\text{AnnRet} - r_f}{\text{AnnVol}},
+  $$
+  assuming risk-free rate $r_f$ is zero.
+
+- Maximum Drawdown: the largest peak-to-trough decline in cumulative return.
+
+These metrics are computed separately for our strategy and the benchmark to facilitate a clear comparison.
+
+Assumptions: 
+
+1. The transaction cost is 20 basis point.  
+2. Trades executed at daily closing prices. 
+3. Stocks are picked on the first trading day of each month and rebalanced daily.  
+4. Benchmark is buy-and-hold with no dividends reinvested.  
+5. Unlimited liquidity and zero market impact. 
+
+### Backtesting Performance Summary
+
+#### Performance without Transaction Cost
+
+![backtest_performance_no_cost](attachments/performance_without_cost.jpg)
+
+When transaction costs are ignored, the strategy outperforms the benchmark.
+
+The cumulative returns plot shows the strategy’s growth to about 20 times the initial capital by the end of the period, compared to about 4.5 times for the benchmark.  Without trading costs, the Sharpe ratio approaches 1.0, indicating almost unit risk-adjusted return, while volatility remains similar to the with-cost scenario.  However, the deep maximum drawdown of nearly 60% signals significant downside during stress periods.
+
+### Performance with Transaction Cost (20 basis point)
+
+
+
+![backtest_performance](attachments/performance_without_cost.jpg)
+
+
+
+| Metric                | Strategy | Benchmark |
+| --------------------- | -------: | --------: |
+| Annualized Return     |   25.67% |    15.36% |
+| Annualized Volatility |   35.23% |    18.22% |
+| Sharpe Ratio          |     0.73 |      0.84 |
+| Maximum Drawdown      |  –59.64% |   –38.15% |
+
+The cumulative returns chart shows that our strategy, after an early drawdown, generated a final cumulative return of over 10 times of the initial capital versus about 2.3 times for the benchmark.  On an annualized basis, the strategy delivered 25.67% return compared to 15.36% for the benchmark, however with higher volatility (35.23% vs. 18.22%).  This higher risk translated into a Sharpe ratio of 0.73—slightly below the benchmark’s 0.84—reflecting our model’s more aggressive positioning. The strategy also experienced a deeper maximum drawdown of –59.64% versus –38.15% for the benchmark, highlighting greater downside during stressed periods. 
+
+In summary, while the strategy outperformed in total and annualized return, it did so with substantially higher risk and drawdown, indicating the importance of further refinement in risk control.  
 
 
 ## Appendix
@@ -428,3 +672,5 @@ Alpha#100: (0 - (1 * (((1.5 * scale(indneutralize(indneutralize(rank(((((close -
 Alpha#101: ((close - open) / ((high - low) + .001))
 
 ## References
+
+- Zura Kakushadze, 2015. [Formulaic Alphas](https://arxiv.org/pdf/1601.00991)
