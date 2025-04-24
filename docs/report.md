@@ -1,3 +1,8 @@
+---
+title: "Time-Series trading strategy based on Factor stock selection"
+author: "Yanzhong Huang, Qinqin Huang, Yongyi Tang, Haoyue Tang"
+geometry: "landscape"
+---
 ## Introduction
 
 Most factor models used in trading strategies are cross-sectional, meaning they rely on the relative ranking of stocks at a specific time. It is assumed that this ranking will remain stable over time and that the factors used for ranking will predict future returns. However, this assumption may not hold true under all market conditions, and the predictability of these factors can change over time, as can market anomalies. This can result in a model that overfits historical data and fails to generalize to new data.
@@ -96,9 +101,118 @@ The absolute correlation between the significant alphas daily returns is relativ
 
 ## Time-Series Components Analysis
 
+\newpage
+
 ## Model Construction
 
 ![Model](attachments/process_map.png)
+
+The general methodology begins with using a cross-sectional factor model to select the top n stocks based on their exposure to the chosen factors. This selection will occur monthly, as we are employing a fundamental factor model.
+
+Next, we will use the selected stocks to create a time-series model. This model will be updated monthly, but its fit will be refreshed daily. The time-series model will predict the daily returns and volatility of the selected stocks. Specifically, we will use an ARIMAX model to forecast daily returns and a GARCH model to estimate daily volatility based on the residuals.The general methodology is first using cross-sectional factor model to pick top n stocks based on the exposure of the selected factors. The cross-sectional picking will be done on a monthly basis, since we are using a fundamental factor model.
+
+### Factor Model Pick Top n Stocks Monthly
+
+We used the Fama-French five factors plus momentum as our base factors. The model is as follows:
+
+$$
+r_i - r_f = \beta_1 \cdot mktrf + \beta_2 \cdot smb + \beta_3 \cdot hml + \beta_4 \cdot rmw + \beta_5 \cdot cma + \beta_6 \cdot umd + \epsilon
+$$
+
+Where:
+
+- $r_i$ is the daily return of stock i.
+- $r_f$ is the risk-free rate.
+- $\beta_1, \beta_2, \beta_3, \beta_4, \beta_5, \beta_6$ are the factor loadings for the Fama-French 5 factors plus momentum.
+- $\epsilon$ is the error term.
+
+Then we used the z-score approach to select the top \(n\) stocks. The z-score is calculated cross-sectionally for each stock based on its factor loadings.
+
+$$
+z_i = \frac{\beta_i - \mu}{\sigma}
+$$
+
+Where:
+
+- $z_i$ is the z-score for stock i.
+- $\beta_i$ is the factor loading for stock i.
+- $\mu$ is the mean of the factor loadings for all stocks.
+- $\sigma$ is the standard deviation of the factor loadings for all stocks.
+
+Finally use the average z-scores to select the top (n) stocks. The selection will be based on their average z-scores across all factors.
+In backtesting, we tested different lookback periods for the z-scores, including 3, 6, 9, 12, 18, and 24 months. The results indicate that the 9-month lookback period performs best, according to the information coefficient (IC):
+
+$$
+IC=corr(z_{it}, Ri_{t+1})
+$$
+
+### Time-Series ARMAX Model
+
+Each month, we employ a systematic approach to construct a time-series ARMA(p, q) model using our selected stocks. At the conclusion of every month, denoted as time $t$, we harness the daily returns of these stocks along with the alpha values from the preceding three months to identify the most suitable ARMAX(p, q) model.
+
+In defining what constitutes an "appropriate" model, we adhere to the following criteria:
+
+-  The model incorporates only those alpha values that are statistically significant, specifically those with a p-value less than 0.05.
+-  It achieves the lowest Akaike Information Criterion (AIC) value, with the parameters $p$ and $q$ ranging from 1 to 4.
+
+Once the model is established at time $t$, it does not remain static. Throughout the following month, we fit the model on a daily basis, continuously updating the parameters to reflect the latest data and maintain the model's accuracy until the next stock selection period.
+
+The ARIMAX model, once established at time $t$, serves several critical forecasting functions:
+
+-  It predicts the expected return $E(R_{t+1})$ for the subsequent trading day, providing a valuable forward-looking insight into potential market movements.
+-  By employing a rolling model approach, it generates a series of expected returns that extend up to the next stock selection period, offering a continuous stream of predictive insights.
+-  It also produces a residual series for the lookback period, which is instrumental in fitting the GARCH model. This residual series is crucial for estimating the volatility, thereby enhancing our ability to manage risk effectively.
+
+
+### Time-Series GARCH Model
+
+Our trading strategy is primarily centered around leveraging the expected returns predicted by the ARIMAX model. While this model provides valuable insights into potential returns, it is crucial to also account for the inherent volatility in these returns to make informed trading decisions. To address this, we incorporate a GARCH model to estimate and manage the volatility of the residuals derived from the ARIMAX model.
+
+The GARCH model operates on a similar foundational principle as the ARIMAX model. At the end of each month, we calibrate the GARCH model using the latest available data. This involves fitting the model daily with the newest ARIMAX residuals, allowing us to continuously update and refine the model parameters. This dynamic fitting process ensures that our volatility estimates remain responsive to the latest market conditions.
+
+Once calibrated, the GARCH model forecasts the volatility for the subsequent trading day. This forecast is crucial, as it provides us with a forward-looking measure of risk, enabling us to adjust our trading positions accordingly. By employing a rolling estimation approach, the model generates a series of expected volatility measures. These measures extend until the next stock selection period, providing a continuous stream of volatility predictions that inform our trading strategy.
+
+This dual-model approach—utilizing ARIMAX for expected returns and GARCH for volatility—allows us to construct a more comprehensive and robust trading strategy. By integrating these models, we can better manage risk and optimize our trading decisions, ultimately aiming to enhance our portfolio's performance while mitigating potential downsides associated with market fluctuations.
+
+### Prediction Sample
+
+The following table shows the predicted returns and volatility for the selected stocks on 2024-10-31. The prediction period would be 2024-11-01 to 2024-11-29. The predicted returns are based on the ARIMAX model, while the predicted volatility is derived from the GARCH model.
+
+**Selected 10 stocks using Fama-French 5 factors plus momentum:**
+
+| Symbol | Name               | Sector         | Industry          |
+|--------|--------------------|------------------|-------------------|
+| NVDA   | NVIDIA Corporation  | Information Technology | Semiconductors     |
+| AVGO   | Broadcom Inc.      | Information Technology | Semiconductors     |
+| IP     | International Paper Company | Materials       | Containers & Packaging |
+| BLDR   | Builders FirstSource, Inc. | Industrials     | Building Products   |
+| QCOM   | QUALCOMM Incorporated | Information Technology | Semiconductors     |
+| URI    | United Rentals, Inc. | Industrials     | Rental & Leasing Services |
+| POOL   | Pool Corporation    | Industrials     | Building Products   |
+| IVZ    | Invesco Ltd.       | Financials       | Asset Management   |
+| KLAC   | KLA Corporation     | Information Technology | Semiconductors     |
+| PHM    | PulteGroup, Inc.   | Consumer Discretionary | Homebuilding       |
+
+**Expected returns prediction:**
+
+| Date       | NVDA   | AVGO   | IP     | BLDR   | QCOM   | URI    | POOL   | IVZ    | KLAC   | PHM    |
+|:-----------|-------:|-------:|-------:|-------:|-------:|-------:|-------:|-------:|-------:|-------:|
+| 2024-11-01 | -0.0018 | 0.0037 | 0.0293 | 0.0171 | 0.0223 | 0.0006 | -0.0088 | -0.0042 | 0.0139 | 0.0012 |
+| 2024-11-04 | -0.0299 | 0.0022 | -0.2409 | -0.0132 | 0.0054 | -0.0005 | 0.0004 | -0.0100 | 0.0006 | 0.0003 |
+| ...        |  ...    | ...    | ...    | ...    | ...    | ...    | ...    | ...    | ...    | ...    |
+| 2024-11-27 | -0.0122 | 0.0000 | -0.0065 | 0.0108 | -0.0025 | 0.0012 | -0.0062 | 0.0073 | 0.0001 | -0.0012 |
+| 2024-11-29 | 0.0066 | -0.0026 | -0.0068 | 0.0097 | -0.0046 | 0.0145 | -0.0067 | 0.0136 | -0.0059 | -0.0001 |
+
+**Expected volatility prediction:**
+
+| Date       | NVDA   | AVGO   | IP     | BLDR   | QCOM   | URI    | POOL   | IVZ    | KLAC   | PHM    |
+|:-----------|-------:|-------:|-------:|-------:|-------:|-------:|-------:|-------:|-------:|-------:|
+| 2024-11-01 | 0.0268 | 0.0309 | 0.0685 | 0.0196 | 0.0235 | 0.0126 | 0.0147 | 0.0155 | 0.0369 | 0.0172 |
+| 2024-11-04 | 0.0295 | 0.0281 | 0.1361 | 0.0194 | 0.0205 | 0.0148 | 0.0142 | 0.0162 | 0.0204 | 0.0169 |
+| ...        |  ...    | ...    | ...    | ...    | ...    | ...    | ...    | ...    | ...    | ...    |
+| 2024-11-27 | 0.0281 | 0.0191 | 0.0132 | 0.0217 | 0.0204 | 0.0191 | 0.0217 | 0.0171 | 0.0318 | 0.0232 |
+| 2024-11-29 | 0.0284 | 0.0306 | 0.0143 | 0.0215 | 0.0201 | 0.0191 | 0.0185 | 0.0165 | 0.0203 | 0.0231 |
+
 
 ## Backtesting Results
 
