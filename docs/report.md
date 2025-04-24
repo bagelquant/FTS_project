@@ -444,7 +444,6 @@ The cumulative returns plot shows the strategy’s growth to about 20 times the 
 ### Performance with Transaction Cost (20 basis point)
 
 
-
 ![backtest_performance](attachments/performance_without_cost.jpg)
 
 
@@ -460,8 +459,22 @@ The cumulative returns chart shows that our strategy, after an early drawdown, g
 
 In summary, while the strategy outperformed in total and annualized return, it did so with substantially higher risk and drawdown, indicating the importance of further refinement in risk control.  
 
+## Conclusion and Future Work
 
-## Appendix
+In this report, we presented a comprehensive analysis of the 101 Formulaic Alphas and their performance in a backtesting framework. We constructed alphas based on daily prices and volumes of S&P 500 stocks, and selected significant alphas using t-tests. The time-series analysis revealed that most stock return series are stationary, and we employed ARIMAX and GARCH models for predicting returns and volatility.
+
+Major findings include:
+
+- Time-series components did outperform the equal-weighted benchmark
+- However, it incurred higher volatility and maximum drawdown, indicating a need for improved risk management.
+
+We believe that the overall research structure is solid, we could further enhance the model by:
+
+- Incorporating additional factors or alternative models to improve predictive power.
+- Exploring different portfolio construction techniques to optimize risk-return profiles.
+- Implementing advanced risk management strategies to mitigate drawdowns.
+- Conducting further research on the impact of transaction costs and market conditions on strategy performance.
+- Investigating the potential for machine learning techniques to enhance alpha generation and risk management.
 
 ### Appendix A: Formulaic Expressions for Alphas
 
