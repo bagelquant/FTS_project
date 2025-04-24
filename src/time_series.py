@@ -320,10 +320,17 @@ def _single_month_end(month_end: pd.Timestamp,
 
 
 def main():
+    # configs
     start = pd.to_datetime("2015-01-01")
+    top_n: int = 50
+    output_path = Path("data/predictions_50")
+
+
+
+    # read the data
     z_scores_df: pd.DataFrame = pd.read_csv("data/monthly_stock_pick/z_scores_9.csv", index_col=0, parse_dates=True)
     stock_returns: pd.DataFrame = pd.read_csv("data/stock_returns.csv", index_col=0, parse_dates=True)
-    top_n_tickers: pd.DataFrame = sort_top_n_z_score(z_scores_df, n=10).loc[start:]
+    top_n_tickers: pd.DataFrame = sort_top_n_z_score(z_scores_df, n=top_n).loc[start:]
     alphas_value_dict: dict[str, pd.DataFrame] = read_all_alphas_values()
 
     for month_end in top_n_tickers.index[:-1]:
@@ -336,9 +343,13 @@ def main():
         single_month_alphas_value_dict: dict[str, pd.DataFrame] = {ticker: alphas_value_dict[ticker] for ticker in top_n_tickers_}
         # get the expected returns and volatility
         expected_return, volatility = _single_month_end(month_end, next_month_end, single_month_stock_returns, single_month_alphas_value_dict)
+
         # save the results
-        expected_return.to_csv(f"data/predictions/expected_returns/{month_end.strftime('%Y-%m-%d')}.csv")
-        volatility.to_csv(f"data/predictions/volatilities/{month_end.strftime('%Y-%m-%d')}.csv")
+        # create the output folder if not exists
+        (output_path / "expected_returns").mkdir(parents=True, exist_ok=True)
+        (output_path / "volatilities").mkdir(parents=True, exist_ok=True)
+        expected_return.to_csv(output_path / "expected_returns" / f"{month_end.strftime('%Y-%m-%d')}.csv")
+        volatility.to_csv(output_path / "volatilities" / f"{month_end.strftime('%Y-%m-%d')}.csv")
         
 
 if __name__ == "__main__":

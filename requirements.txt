@@ -6,4 +6,4 @@ jupyter
 yfinance
 arch
 numdifftools
-pmdarima
+tqdm
