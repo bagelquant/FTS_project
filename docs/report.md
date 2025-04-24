@@ -6,6 +6,18 @@ In this report, we will explore a rolling window approach to address this issue,
 
 To achieve this, we selected Fama-French 5 factors plus momentum as the base factors. Then we constructed anomalies based on 101 Formulaic Alphas [Zura Kakushadze, 2015]. Finally, we used a rolling window approach to select the most significant factors, anomalies (alphas) and combined them with time-series components to create a more robust model.
 
+In this report, we will:
+
+- Pre-modelling
+    - Provide an overview of the data used in our analysis. 
+    - Analyze the time-series components of returns.
+- Model construction
+    - Discuss the trading strategy.
+- Performance evaluation
+    - Present the backtesting results.
+
+![Pre-modeling](attachments/pre_modeling.png)
+
 ## Data Overview
 
 We selected the following data for our analysis:
@@ -40,7 +52,7 @@ The Fama-French 5 factors plus momentum daily factors returns were obtained from
 - **umd**: Up minus down (momentum factor).
 
 
-## Alphas Construction
+### Alphas Construction
 
 The 101 Formulaic Alphas paper [Zura Kakushadze, 2015] provides a comprehensive list of 101 real-life quantitative trading alphas. The original paper have a average holding period approximately ranges from 0.6 to 6.4 days. For our analysis, since we aim to construct a daily frequency trading strategy, we will hold the alphas for 1 day. However, the look back period for the alphas construction still varies based on the alphas construction method, details can be found in the paper. 
 
@@ -62,7 +74,7 @@ Then we sorted the alphas by their values on daily basis. Dividing the stocks in
 | 2005-01-05 | 0.000321  | -0.001533 | -0.001220 |
 | 2005-01-06 | -0.002266 | 0.003295  | -0.001950 |
 
-### Significant Alphas Selection
+#### Overall Significant Alphas Selection
 
 In our backtesting period, 2004-2024, we first selected the alphas daily return is siginificantly different from 0. We used a t-test to determine the significance of the alphas. At the 5% significance level, 29 alphas were found to be significant. The t-test results are shown below:
 
@@ -82,12 +94,20 @@ In our backtesting period, 2004-2024, we first selected the alphas daily return 
 
 The absolute correlation between the significant alphas daily returns is relatively low, the average absolute correlation is 0.15. The maximum absolute correlation is 0.71, which is between alpha009 and alpha010 (Due to their similar construction method). 
 
+## Time-Series Components Analysis
+
+## Model Construction
+
+![Model](attachments/process_map.png)
+
+## Backtesting Results
+
+
 ## Appendix
 
 ### Appendix A: Formulaic Expressions for Alphas
 
 From the 101 Formulaic Alphas paper [Zura Kakushadze, 2015], we have the following formulaic expressions for the alphas:
-
 Alpha#1: (rank(Ts_ArgMax(SignedPower(((returns < 0) ? stddev(returns, 20) : close), 2.), 5)) -0.5) 
 
 Alpha#2: (-1 * correlation(rank(delta(log(volume), 2)), rank(((close - open) / open)), 6)) 
@@ -292,3 +312,5 @@ Alpha#99: ((rank(correlation(sum(((high + low) / 2), 19.8975), sum(adv60, 19.897
 Alpha#100: (0 - (1 * (((1.5 * scale(indneutralize(indneutralize(rank(((((close - low) - (high close)) / (high - low)) * volume)), IndClass.subindustry), IndClass.subindustry))) scale(indneutralize((correlation(close, rank(adv20), 5) - rank(ts_argmin(close, 30))), IndClass.subindustry))) * (volume / adv20)))) 
 
 Alpha#101: ((close - open) / ((high - low) + .001))
+
+## References
