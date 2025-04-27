@@ -9,14 +9,13 @@ Time series model module
 import pandas as pd
 from pathlib import Path
 import statsmodels.api as sm
-from statsmodels.api import OLS
 from statsmodels.tsa.arima.model import ARIMA
 from arch import arch_model
 from concurrent.futures import ProcessPoolExecutor
 
 
 
-with open("data/significant_alphas_list.txt", "r") as f:
+with open("output/significant_alphas_list.txt") as f:
     # read the file, each line is an alpha name
     OVERALL_SIGNIFICANT_ALPHAS = f.read().splitlines()
 
@@ -52,11 +51,12 @@ def _read_single_alpha_file(file: Path) -> dict[str, pd.DataFrame]:
     return {file.stem: df}
 
 
-def read_all_alphas_values(path: Path = Path("data/alphas_by_symbol/"),
+def read_all_alphas_values(path: Path = Path("output/alphas"),
                            max_workers: int = 10) -> dict[str, pd.DataFrame]:
     """
-    Read all alphas values from the path
-    :param path: path to the folder with the alphas values
+    Read all alphas values the path
+    :param path: path to the folder
+    :param max_workers: number of workers to use
     :return: DataFrame with alphas values, index date, columns tickers
     """
     # get all files in the folder
@@ -71,6 +71,7 @@ def read_all_alphas_values(path: Path = Path("data/alphas_by_symbol/"),
     alphas_values_dict = {}
     for alpha in alphas_values:
         alphas_values_dict.update(alpha)
+
     return alphas_values_dict
     
 
@@ -111,6 +112,8 @@ def single_stock_time_series(stock_returns: pd.Series,
     
     :param stock_returns: Series with stock returns, index date, values returns
     :param alphas_value: DataFrame with alphas values, index date, columns tickers
+    :param month_end: month end date
+    :param next_month_end: next month end date
     :return: tuple with the expected_returns and volatility predictions, pd.Series
     index = date, values = returns and volatility
     """
@@ -124,7 +127,6 @@ def single_stock_time_series(stock_returns: pd.Series,
     
     # 1. OLS find significant alphas
     significant_alphas = _ols_model_find_significant_alphas(stock_returns_[:month_end], alphas_value_[:month_end])
-    print(f"Significant alphas: {significant_alphas}")
     alphas_value_: pd.DataFrame = alphas_value_[significant_alphas].copy()
 
     # 2. ARIMA find optimal p, q
@@ -312,6 +314,7 @@ def _single_month_end(month_end: pd.Timestamp,
             expected_returns.append(expected_return)
             volatility.append(vol)
     # for ticker in stock_list:
+    #     print(ticker)
     #     expected_return, vol = single_stock_time_series(stock_returns[ticker].copy(), alphas_value_dict[ticker].copy(), month_end, next_month_end)
     #     expected_returns.append(expected_return)
     #     volatility.append(vol)
@@ -319,17 +322,17 @@ def _single_month_end(month_end: pd.Timestamp,
     return pd.concat(expected_returns, axis=1), pd.concat(volatility, axis=1)
 
 
-def main():
-    # configs
-    start = pd.to_datetime("2015-01-01")
-    top_n: int = 50
-    output_path = Path("data/predictions_50")
-
-
-
+def predict_returns_volatility(start: pd.Timestamp,
+                               top_n: int = 10,
+                               output_path: Path = Path("output/predictions")) -> None:
+    """
+    :param start: start date for prediction
+    :param top_n: number of top z-scores to predict
+    :output_path: path to save the predictions
+    """
     # read the data
-    z_scores_df: pd.DataFrame = pd.read_csv("data/monthly_stock_pick/z_scores_9.csv", index_col=0, parse_dates=True)
-    stock_returns: pd.DataFrame = pd.read_csv("data/stock_returns.csv", index_col=0, parse_dates=True)
+    z_scores_df: pd.DataFrame = pd.read_csv("output/z_scores/z_scores_9.csv", index_col=0, parse_dates=True)
+    stock_returns: pd.DataFrame = pd.read_csv("output/stock_returns.csv", index_col=0, parse_dates=True)
     top_n_tickers: pd.DataFrame = sort_top_n_z_score(z_scores_df, n=top_n).loc[start:]
     alphas_value_dict: dict[str, pd.DataFrame] = read_all_alphas_values()
 
@@ -350,18 +353,3 @@ def main():
         (output_path / "volatilities").mkdir(parents=True, exist_ok=True)
         expected_return.to_csv(output_path / "expected_returns" / f"{month_end.strftime('%Y-%m-%d')}.csv")
         volatility.to_csv(output_path / "volatilities" / f"{month_end.strftime('%Y-%m-%d')}.csv")
-        
-
-if __name__ == "__main__":
-    from time import perf_counter
-    import warnings
-    warnings.filterwarnings("ignore")
-
-    # Alternatively, ignore specific warnings by category
-    warnings.filterwarnings("ignore", category=UserWarning)  # Ignore UserWarnings
-    warnings.filterwarnings("ignore", category=FutureWarning)  # Ignore FutureWarnings
-
-    start = perf_counter()
-    main()
-    end = perf_counter()
-    print(f"Execution time: {end - start:.2f} seconds \n or {round((end - start) / 60, 2)} minutes")

@@ -263,13 +263,13 @@ def read_data():
     read stocks returns and factors data
     """
 
-    factors = pd.read_csv('../data/rolling_result_p.csv', index_col=0, header=0)
+    factors = pd.read_csv('../archive/data/rolling_result_p.csv', index_col=0, header=0)
     factors.index = pd.to_datetime(factors.index, format='%Y-%m-%d')
 
     # return of stock
     df_returns = pd.DataFrame()
     stocks = []
-    for dirpath, dirnames, filenames in os.walk('../data/raw/'):
+    for dirpath, dirnames, filenames in os.walk('../raw_data/'):
         for filename in filenames:
             if filename.endswith('.csv'):
                 stocks.append(filename.split('.')[0])
