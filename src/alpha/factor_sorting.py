@@ -50,6 +50,7 @@ def calculate_stock_returns(path: Path = Path('raw_data'),
     close_df = close_df.dropna(axis=1, how='all').ffill()
            
     stock_returns = close_df.pct_change().drop(close_df.index[0])
+    print(stock_returns)
     stock_returns.to_csv(output / 'stock_returns.csv')
 
 

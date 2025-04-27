@@ -1,7 +1,9 @@
 pandas
+numpy
 matplotlib
 statsmodels
 scipy
 jupyter
 yfinance
 arch
+tqdm
