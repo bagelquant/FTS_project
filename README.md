@@ -87,6 +87,14 @@ Time may vary depending on the number of workers, size of data, and your machine
 
 Backtesting is done using `notebooks/backtest.ipynb`. 
 
+Backtesting result (with cost):
+
+![performance_with_cost](docs/attachments/performance_with_cost.jpg)
+
+Backtesting result (without cost):
+
+![performance_without_cost](docs/attachments/performance_without_cost.jpg)
+
 ## Major Output
 
 - `output/alphas/`: All alphas calculated from the raw data.
