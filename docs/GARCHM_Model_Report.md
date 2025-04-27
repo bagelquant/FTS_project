@@ -8,24 +8,24 @@ The GARCH-M (Generalized Autoregressive Conditional Heteroskedasticity-in-Mean) 
 ### Mean Equation
 The GARCH-M model assumes the following form for the conditional mean of returns:
 
-\[ R_t = \alpha + \beta^\top F_t + \lambda \cdot \sqrt{h_t} + \varepsilon_t \]
+$$ R_t = \alpha + \beta^\top F_t + \lambda \cdot \sqrt{h_t} + \varepsilon_t $$
 
-- \( R_t \): Asset return at time \( t \)
-- \( \alpha \): Intercept term
-- \( \beta \): Vector of factor loadings
-- \( F_t \): Vector of observable factors at time \( t \)
-- \( \lambda \): Coefficient for the conditional standard deviation (volatility-in-mean effect)
-- \( h_t \): Conditional variance
-- \( \varepsilon_t \): Zero-mean error term
+- $ R_t $: Asset return at time $ t $
+- $ \alpha $: Intercept term
+- $ \beta $: Vector of factor loadings
+- $ F_t $: Vector of observable factors at time $ t $
+- $ \lambda $: Coefficient for the conditional standard deviation (volatility-in-mean effect)
+- $ h_t $: Conditional variance
+- $ \varepsilon_t $: Zero-mean error term
 
 ### Variance Equation
-The conditional variance \( h_t \) follows a GARCH(p, q) process:
+The conditional variance $ h_t $ follows a GARCH(p, q) process:
 
-\[ h_t = \omega + \sum_{i=1}^{p} \alpha_i \varepsilon_{t-i}^2 + \sum_{j=1}^{q} \beta_j h_{t-j} \]
+$$ h_t = \omega + \sum_{i=1}^{p} \alpha_i \varepsilon_{t-i}^2 + \sum_{j=1}^{q} \beta_j h_{t-j} $$
 
-- \( \omega \): Constant term
-- \( \alpha_i \): ARCH parameters (response to past squared residuals)
-- \( \beta_j \): GARCH parameters (response to past variances)
+- $ \omega $: Constant term
+- $ \alpha_i $: ARCH parameters (response to past squared residuals)
+- $ \beta_j $: GARCH parameters (response to past variances)
 
 
 
@@ -33,16 +33,16 @@ The conditional variance \( h_t \) follows a GARCH(p, q) process:
 
 The parameters of the GARCH-M model are estimated by maximizing the log-likelihood function under the assumption of normally distributed errors:
 
-\[ \mathcal{L}(\theta) = -\frac{1}{2} \sum_t \left[ \log(h_t) + \frac{\varepsilon_t^2}{h_t} \right] \]
+$$ \mathcal{L}(\theta) = -\frac{1}{2} \sum_t \left[ \log(h_t) + \frac{\varepsilon_t^2}{h_t} \right] $$
 
-The parameter vector \( \theta \) includes:
+The parameter vector $ \theta $ includes:
 
-\[ \theta = (\alpha, \beta, \lambda, \omega, \alpha_1, \ldots, \alpha_p, \beta_1, \ldots, \beta_q) \]
+$$ \theta = (\alpha, \beta, \lambda, \omega, \alpha_1, \ldots, \alpha_p, \beta_1, \ldots, \beta_q) $$
 
-Numerical optimization (e.g., SLSQP) is used to estimate \( \theta \), with constraints imposed to ensure positivity and stationarity of the variance process:
+Numerical optimization (e.g., SLSQP) is used to estimate $ \theta $, with constraints imposed to ensure positivity and stationarity of the variance process:
 
-- \( \omega > 0 \), \( \alpha_i \geq 0 \), \( \beta_j \geq 0 \)
-- \( \sum \alpha_i + \sum \beta_j < 1 \) (for covariance stationarity)
+- $ \omega > 0 $, $ \alpha_i \geq 0 $, $ \beta_j \geq 0 $
+- $ \sum \alpha_i + \sum \beta_j < 1 $ (for covariance stationarity)
 
 
 
@@ -51,11 +51,11 @@ Numerical optimization (e.g., SLSQP) is used to estimate \( \theta \), with cons
 
 After estimation, the Hessian matrix of the log-likelihood is approximated numerically. Standard errors are computed from the inverse of the Hessian:
 
-\[ \text{Var}(\hat{\theta}) \approx H^{-1} \quad \Rightarrow \quad \text{SE}(\hat{\theta}_i) = \sqrt{(H^{-1})_{ii}} \]
+$$ \text{Var}(\hat{\theta}) \approx H^{-1} \quad \Rightarrow \quad \text{SE}(\hat{\theta}_i) = \sqrt{(H^{-1})_{ii}} $$
 
 Then, the t-statistics and p-values are calculated as:
 
-\[ t_i = \frac{\hat{\theta}_i}{\text{SE}(\hat{\theta}_i)}, \quad p_i = 2(1 - \Phi(|t_i|)) \]
+$$ t_i = \frac{\hat{\theta}_i}{\text{SE}(\hat{\theta}_i)}, \quad p_i = 2(1 - \Phi(|t_i|)) $$
 
 However, we find that the calculated t-statistics are not valid as the standard errors are not robust. As we are not able to improve the standard errors, we cannot use them to conduct robust hypothesis tests. This is a limitation of our current approach.
 
