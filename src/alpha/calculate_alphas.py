@@ -77,13 +77,36 @@ def calculate_all_alphas(output_path: Path = Path('output/alphas'),
                                     [output_path] * len(_get_all_symbols())))
 
 
+def regroup_alphas(path: Path = Path('output/alphas'),
+                   output_path: Path = Path('output/alphas_by_name')) -> None:
+    """
+    Read all data from alpha folder,
+    regroup the data to `alpha_name.csv`, containing all symbols
 
-if __name__ == '__main__':
-    from time import perf_counter
+    :param path: Path to alpha folder
+    :param output_path: Path to output folder
+    :return: None
+    """
+    # create output path if not exists
+    if not output_path.exists():
+        output_path.mkdir()
 
-    start = perf_counter()
-    calculate_all_alphas()
-    # regroup_alphas()
-    print(f"Time: {perf_counter() - start:.2f} seconds \n or {(perf_counter() - start) / 60:.2f} minutes")
+    columns = pd.read_csv(path / 'AAPL.csv', index_col=0).columns.to_list()
+    # remove first 7 columns : ["open", "high", "low", "close", "vol", "pct_change", "vwap"]
+    columns = columns[7:]
 
+    data = {}
+    for symbol in _get_all_symbols(path):
+        df = pd.read_csv(path / f'{symbol}.csv', index_col=0, parse_dates=True)
+        # drop first 7 columns : ["open", "high", "low", "close", "vol", "pct_change", "vwap"]
+        df = df.iloc[:, 7:]
+        # remove duplicate index
+        df = df[~df.index.duplicated(keep='first')]
+        data[symbol] = df
+
+    # regroup data and save to csv file
+    for column in columns:
+        print(f"Regroup {column} ...")
+        concat_table = pd.DataFrame({symbol: data[symbol][column] for symbol in data})
+        concat_table.to_csv(output_path / f'{column}.csv')
 

@@ -17,12 +17,13 @@ Note:
 The main script will:
 
 1. Calculate all alphas, stored in `output/alphas` folder. -> about 5 mins
-2. Test for alphas have significant returns compared to zero.
+2. Regroup alphas from ticker to alphas, each table -> about 5 mins -> For further analysis
+3. Calculate z-scores for each stock, stored in `output/z_scores` folder. -> about 2 mins
 """
 
 from pathlib import Path
 from time import perf_counter
-from src import calculate_all_alphas
+from src import calculate_all_alphas, regroup_alphas, calculate_stock_z_scores
 
 
 # CONFIGURATIONS
@@ -43,9 +44,18 @@ def main() -> None:
     # calculate_all_alphas(output_path=Path('output/alphas'),
     #                      max_workers=MAX_WORKERS)
 
-    # step 2. test for alphas significant
+    # step 2. Regroup alphas -> Time cost: about 5 mins
+    # print("Regrouping all alphas...")
+    # regroup_alphas(path=Path("output/alphas"),
+    #                output_path=Path('output/alphas_by_name'))
 
 
+    # step 3: calculate z-scores -> Time cost: about 2 mins
+    print("Calculating z-scores...")
+    # lookback_period: list[int] = [3, 6, 9, 12, 18, 24]  # lookback periods in months
+    lookback_period: list[int] = [9]  # for quick run
+    calculate_stock_z_scores(lookback_periods=lookback_period,
+                             output_path=Path("output/z_scores"))
     print("===All steps are done.===")
 
 
