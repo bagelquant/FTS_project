@@ -269,7 +269,7 @@ def read_data():
     # return of stock
     df_returns = pd.DataFrame()
     stocks = []
-    for dirpath, dirnames, filenames in os.walk('../data/raw/'):
+    for dirpath, dirnames, filenames in os.walk('../../raw_data/'):
         for filename in filenames:
             if filename.endswith('.csv'):
                 stocks.append(filename.split('.')[0])

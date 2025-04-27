@@ -5,5 +5,3 @@ scipy
 jupyter
 yfinance
 arch
-numdifftools
-tqdm

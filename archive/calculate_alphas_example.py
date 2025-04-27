@@ -2,8 +2,8 @@
 Example of calculating alphas
 
 Data:
-- raw data: price and volume data of SP500 stocks
-- alphas_by_symbol: calculated from the raw data, stored in `data/alphas` folder, each symbol has its own file
+- raw_data data: price and volume data of SP500 stocks
+- alphas_by_symbol: calculated from the raw_data data, stored in `data/alphas` folder, each symbol has its own file
 - alphas_by_name: regrouped alphas, stored in `data/alphas_by_name` folder, each alpha has its own file
 
 hml.csv:

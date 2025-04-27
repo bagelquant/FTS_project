@@ -1,5 +1,5 @@
 """
-Calculate the 101 Alphas from WorldQuant.
+101 Alphas from WorldQuant calculation method
 
 Reference: https://github.com/yli188/WorldQuant_alpha101_code
 """

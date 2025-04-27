@@ -5,7 +5,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
 
-def _get_all_symbols(path: Path = Path('data/raw')) -> list[str]:
+def _get_all_symbols(path: Path = Path('data/raw_data')) -> list[str]:
     return [f.stem for f in path.glob('*.csv')]
 
 def _get_all_alpha_names(path: Path = Path('data/alphas_by_name')) -> list[str]:

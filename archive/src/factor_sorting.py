@@ -26,14 +26,14 @@ from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor
 
 
-def calculate_stock_returns(path: Path = Path('data/raw'),
+def calculate_stock_returns(path: Path = Path('data/raw_data'),
                             output: Path = Path('data')) -> None:
     """
     calculate daily pct change price from csv file, then save to data folder
     :param path: Path to data folder
     :return: DataFrame with close price
     
-    raw data folder structure:
+    raw_data data folder structure:
     ticker1.csv  -> had columns: open, high, low, close, vol, vwap
     ticker2.csv
 
@@ -224,7 +224,7 @@ def _test():
     lookback_periods = [3, 6, 9, 12, 18, 24]
     lookback_periods = [9]
     # calculate stock returns
-    # calculate_stock_returns(path=Path('data/raw'), output=Path('data/'))
+    # calculate_stock_returns(path=Path('data/raw_data'), output=Path('data/'))
     stock_returns = _read_stock_returns()
     factor_returns = _read_factor_returns()
 

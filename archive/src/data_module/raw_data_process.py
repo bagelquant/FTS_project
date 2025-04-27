@@ -7,12 +7,12 @@ columes: - symbol: str, from csv file name without extension
 
 import pandas as pd
 from pathlib import Path
-from .alpha import get_alpha
+from src.alpha.alpha import get_alpha
 from concurrent.futures import ProcessPoolExecutor
 
 
 def _get_stock_price(symbol: str, 
-                    path: Path = Path('data/raw')) -> pd.DataFrame:
+                    path: Path = Path('data/raw_data')) -> pd.DataFrame:
     """
     Read stock price from csv file
     :param symbol: Stock symbol
@@ -30,7 +30,7 @@ def _get_stock_price(symbol: str,
     return df
 
 
-def _get_all_symbols(path: Path = Path('data/raw')) -> list[str]:
+def _get_all_symbols(path: Path = Path('data/raw_data')) -> list[str]:
     """
     Get all symbols(File name) from data folder
     :param path: Path to data folder
