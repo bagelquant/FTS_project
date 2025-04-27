@@ -23,10 +23,14 @@ The main script will:
 """
 
 import pandas as pd
+import warnings
 from pathlib import Path
 from time import perf_counter
 from src import calculate_all_alphas, regroup_alphas, calculate_stock_z_scores, predict_returns_volatility
+# ConvergenceWarning from sklearn
 
+# Suppress all warnings
+warnings.filterwarnings("ignore")
 
 # CONFIGURATIONS
 MAX_WORKERS = 10  # Number of workers for multiprocessing

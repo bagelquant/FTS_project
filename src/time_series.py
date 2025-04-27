@@ -10,9 +10,10 @@ import pandas as pd
 from pathlib import Path
 import statsmodels.api as sm
 from statsmodels.tsa.arima.model import ARIMA
+from tqdm import tqdm
 from arch import arch_model
 from concurrent.futures import ProcessPoolExecutor
-
+import warnings
 
 
 with open("output/significant_alphas_list.txt") as f:
@@ -224,7 +225,7 @@ def _fit_garch_and_predict(residuals: pd.Series,
     :return: float with the volatility prediction
     """
     # fit the GARCH model
-    model = arch_model(residuals, vol="GARCH", p=p, q=q).fit(disp="off")
+    model = arch_model(residuals, vol="GARCH", p=p, q=q).fit(disp="off", show_warning=False)
     
     # predict 1 day ahead
     volatility = model.forecast(horizon=1).variance.values[-1, -1]
@@ -272,7 +273,7 @@ def _optimal_p_q_garch(residuals: pd.Series) -> tuple[int, int]:
         for q in range(1, 4):
             try:
                 # fit the GARCH model
-                model = arch_model(residuals, vol="GARCH", p=p, q=q).fit(disp="off")
+                model = arch_model(residuals, vol="GARCH", p=p, q=q).fit(disp="off", show_warning=False)
                 # get the AIC
                 AICs.append((p, q, model.aic))
             except Exception as e:
@@ -330,13 +331,15 @@ def predict_returns_volatility(start: pd.Timestamp,
     :param top_n: number of top z-scores to predict
     :output_path: path to save the predictions
     """
+    warnings.filterwarnings("ignore")
+
     # read the data
     z_scores_df: pd.DataFrame = pd.read_csv("output/z_scores/z_scores_9.csv", index_col=0, parse_dates=True)
     stock_returns: pd.DataFrame = pd.read_csv("output/stock_returns.csv", index_col=0, parse_dates=True)
     top_n_tickers: pd.DataFrame = sort_top_n_z_score(z_scores_df, n=top_n).loc[start:]
     alphas_value_dict: dict[str, pd.DataFrame] = read_all_alphas_values()
 
-    for month_end in top_n_tickers.index[:-1]:
+    for month_end in tqdm(top_n_tickers.index[:-1]):
         print(f"=============================\n Processing {month_end.strftime('%Y-%m-%d')} ...")
         # get the next month end
         next_month_end: pd.Timestamp = top_n_tickers.index[top_n_tickers.index.get_loc(month_end) + 1]  # type: ignore
